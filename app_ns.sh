@@ -64,11 +64,9 @@ ip netns exec $NS_NAME su "$USER" -c "$APP"
 
 #todo!!
 killall openvpn
-iptables -t nat -F
+iptables -t nat -D PREROUTING --destination $VPN_IP -j DNAT --to-destination $NS_IP
+iptables -t nat -D POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 #remove vifaces and namespace
 ip link delete $GW_DEV
 ip netns delete $NS_NAME
-
-#TODO
-#set default route to vpn gateway in ns
-#set route to vpn sub in ns
+sed -i "d/$RT_TABLE/" /etc/iproute2/rt_tables
