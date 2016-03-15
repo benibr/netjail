@@ -16,6 +16,7 @@ RT_TABLE="$NS_NAME";
 
 #start VPN
 openvpn --config $CONFIG --writepid /tmp/torrent-vpn.pid --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec 
+echo $VPN_PID
 #wait for VPN_IP
 while [ -z $VPN_IP ]; do
   VPN_IP=$(ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d /)
@@ -63,7 +64,7 @@ iptables -t nat -A POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 ip netns exec $NS_NAME su "$USER" -c "$APP"
 
 #todo!!
-killall openvpn
+kill $(cat /tmp/torrent-vpn.pid)
 iptables -t nat -D PREROUTING --destination $VPN_IP -j DNAT --to-destination $NS_IP
 iptables -t nat -D POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 #remove vifaces and namespace
