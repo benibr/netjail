@@ -1,7 +1,7 @@
 #!/bin/bash
 
 USER="user"
-CONFIG="/home/user/openvpn/myconf.ovpn"
+CONFIG="/home/$USER/openvpn/myconf.ovpn"
 NS_SUB="10.123.123.0/24"
 APP="/usr/bin/transmission-gtk"
 NS_NAME="trnt"
@@ -69,4 +69,4 @@ iptables -t nat -D POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 #remove vifaces and namespace
 ip link delete $GW_DEV
 ip netns delete $NS_NAME
-sed -i "d/$RT_TABLE/" /etc/iproute2/rt_tables
+sed -i "/.*$RT_TABLE.*/d" /etc/iproute2/rt_tables
