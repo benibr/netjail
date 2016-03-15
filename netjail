@@ -2,8 +2,9 @@
 
 ## functions
 function show_usage {
-	echo -e "Usage: app_ns.sh APP"
-	echo -e "\t\tAPP is an application which should be routed only via openvpn"
+	echo -e "Usage: app_ns.sh APP CONFIG"
+	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
+	echo -e "\t\tCONFIG\tpath to openvpn config"
 }
 
 #check priv/args
@@ -17,7 +18,7 @@ if [ $# -eq 0 ]; then
 fi
 
 USER="user"
-CONFIG="/home/$USER/openvpn/myconf.ovpn"
+CONFIG="$2"
 NS_SUB="10.123.123.0/24"
 APP="$(which $1)"
 NS_NAME="trnt"
