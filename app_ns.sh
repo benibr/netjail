@@ -1,9 +1,25 @@
 #!/bin/bash
 
+## functions
+function show_usage {
+	echo -e "Usage: app_ns.sh APP"
+	echo -e "\t\tAPP is an application which should be routed only via openvpn"
+}
+
+#check priv/args
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root!"
+	exit
+fi
+if [ $# -eq 0 ]; then
+	show_usage
+	exit
+fi
+
 USER="user"
 CONFIG="/home/$USER/openvpn/myconf.ovpn"
 NS_SUB="10.123.123.0/24"
-APP="/usr/bin/transmission-gtk"
+APP="$(which $1)"
 NS_NAME="trnt"
 
 CONFIGDIR=$(dirname $CONFIG )
@@ -70,4 +86,6 @@ iptables -t nat -D POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 #remove vifaces and namespace
 ip link delete $GW_DEV
 ip netns delete $NS_NAME
-sed -i "/.*$RT_TABLE.*/d" /etc/iproute2/rt_tables
+ised -i "/.*$RT_TABLE.*/d" /etc/iproute2/rt_tables
+
+
