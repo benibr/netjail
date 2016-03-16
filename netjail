@@ -80,13 +80,11 @@ iptables -t nat -A POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 #start application in namespace
 ip netns exec $NS_NAME su "$USER" -c "$APP"
 
-#todo!!
+#cleanup
 kill $(cat /tmp/torrent-vpn.pid)
 iptables -t nat -D PREROUTING --destination $VPN_IP -j DNAT --to-destination $NS_IP
 iptables -t nat -D POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
 #remove vifaces and namespace
 ip link delete $GW_DEV
 ip netns delete $NS_NAME
-ised -i "/.*$RT_TABLE.*/d" /etc/iproute2/rt_tables
-
-
+sed -i "/.*$RT_TABLE.*/d" /etc/iproute2/rt_tables

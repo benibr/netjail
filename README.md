@@ -21,5 +21,8 @@ Starts an application in an new network namespace and route all its traffic thro
 The main reason which lead to the development of this script was to keep its author busy while learning the capabilities of iproute2.
 However, one resulting usecase is to jail a torrent application into a openvpn connection to provide anonymity.
 
-## Usage: netjail APP
-	APP is an application which should be routed only via openvpn
+## Usage:
+> netjail APP CONFIG
+> > APP    an application which should be routed only via openvpn
+> > CONFIG path to openvpn config"
+
