@@ -30,10 +30,10 @@ VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
 GW_DEV="$NS_NAME";GW_DEV+="-gw"
 NS_DEV="$NS_NAME";NS_DEV+="-ns"
 RT_TABLE="$NS_NAME";
+VPN_PID="/tmp/torrent-vpn.pid"
 
 #start VPN
-openvpn --config $CONFIG --writepid /tmp/torrent-vpn.pid --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec 
-echo $VPN_PID
+openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec 
 #wait for VPN_IP
 while [ -z $VPN_IP ]; do
   VPN_IP=$(ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d /)
@@ -42,7 +42,8 @@ done
 VPN_GW=$(ip addr show dev $VPN_DEV | grep peer | awk '{print $4}' | cut -f 1 -d /)
 echo -e "\nVPN up an running with IP: $VPN_IP to endpoint: $VPN_GW\n"
 ## general setup
-#add new routing table
+#enable IP forwarding
+sysctl net.ipv4.conf.all.forwarding=1
 echo "200 $RT_TABLE" >> /etc/iproute2/rt_tables
 #add network namespace
 ip netns add $NS_NAME
@@ -84,6 +85,7 @@ ip netns exec $NS_NAME su "$USER" -c "$APP"
 kill $(cat /tmp/torrent-vpn.pid)
 iptables -t nat -D PREROUTING --destination $VPN_IP -j DNAT --to-destination $NS_IP
 iptables -t nat -D POSTROUTING --source $NS_IP -j SNAT --to-source $VPN_IP
+ip route flush table $RT_TABLE
 #remove vifaces and namespace
 ip link delete $GW_DEV
 ip netns delete $NS_NAME
