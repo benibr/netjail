@@ -1,5 +1,15 @@
 #!/bin/bash
 
+USER="$(id -u benibr)"
+CONFIG="$2"
+APP="$(which $1)"
+NS_NAME="trnt"
+
+CONFIGDIR=$(dirname $CONFIG )
+VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
+VPN_PID="/tmp/torrent-vpn.pid"
+SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
+
 ## functions
 function show_usage {
 	echo -e "Usage: app_ns.sh APP CONFIG"
@@ -10,21 +20,21 @@ function show_usage {
 #
 case "$script_type" in
 "up")
-	ip netns add trnt
-	ip netns exec trnt ip link set dev lo up
-	ip link set dev "$1" up netns trnt mtu "$2"
-	test -n "$ifconfig_ipv6_local" && ip netns exec trnt ip addr add dev "$1" "$ifconfig_ipv6_local"/112
-	ip netns exec trnt ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
+	ip netns add $NS_NAME
+	ip netns exec $NS_NAME ip link set dev lo up
+	ip link set dev "$1" up netns $NS_NAME mtu "$2"
+	test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
+	ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
 	exit 0
 ;;
 
 "route-up")
-	ip netns exec trnt ip route add default via "$route_vpn_gateway"
+	ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
 	test -n "$ifconfig_ipv6_remote" && ip netns exec vpn ip route add default via "$ifconfig_ipv6_remote"
 	exit 0
 ;;
 "down")
-	ip netns delete trnt
+	ip netns delete $NS_NAME
 	exit
 	;;
 "*")
@@ -32,26 +42,29 @@ case "$script_type" in
 ;;
 esac
 
-USER="user"
-CONFIG="$2"
-APP="$(which $1)"
-NS_NAME="trnt"
+#check priv/args
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root!"
+	exit
+fi
 
-CONFIGDIR=$(dirname $CONFIG )
-VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
-VPN_PID="/tmp/torrent-vpn.pid"
+if [ $# -eq 0 ]; then
+	show_usage
+	exit
+fi
 
 #start VPN
-openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up netns-up --route-up netns-up
+openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
+
 #wait for VPN_IP
-while [ -z $VPN_IP ]; do
-  VPN_IP=$(ip netns exec $NS_NAME ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d /)
+while [ -z "$VPN_IP" ]; do
+  VPN_IP=$(ip netns exec $NS_NAME ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d / &2>/dev/null)
+  echo $VPN_IP
   sleep 1
 done
 
 #start application in namespace
-ip netns exec $NS_NAME su "$USER" -c "$APP"
-
+ip netns exec $NS_NAME sudo -u "#$USER" -H -g "#$USER" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USER/bus'; $APP"
 #cleanup
 ip netns delete $NS_NAME
 kill $(cat /tmp/torrent-vpn.pid)
