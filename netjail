@@ -1,6 +1,6 @@
 #!/bin/bash
 
-USER="$(id -nu)"
+USER="$(id -u benibr)"
 CONFIG="$2"
 APP="$(which $1)"
 NS_NAME="trnt"
@@ -9,7 +9,6 @@ CONFIGDIR=$(dirname $CONFIG )
 VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
 VPN_PID="/tmp/torrent-vpn.pid"
 SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
-
 
 ## functions
 function show_usage {
@@ -48,22 +47,24 @@ if [ "$(id -u)" != "0" ]; then
 	echo "You need to be root!"
 	exit
 fi
+
 if [ $# -eq 0 ]; then
 	show_usage
 	exit
 fi
 
 #start VPN
-openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2 --verb 6
+openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
 
 #wait for VPN_IP
-while [ -z $VPN_IP ]; do
-  VPN_IP=$(ip netns exec $NS_NAME ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d /)
+while [ -z "$VPN_IP" ]; do
+  VPN_IP=$(ip netns exec $NS_NAME ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d / &2>/dev/null)
+  echo $VPN_IP
   sleep 1
 done
 
 #start application in namespace
-ip netns exec $NS_NAME sudo -u "$USER" -H -g $USER /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$(id -u benibr)/bus'; $APP"
+ip netns exec $NS_NAME sudo -u "#$USER" -H -g "#$USER" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USER/bus'; $APP"
 #cleanup
 ip netns delete $NS_NAME
 kill $(cat /tmp/torrent-vpn.pid)
