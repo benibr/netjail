@@ -63,8 +63,7 @@ while [ -z $VPN_IP ]; do
 done
 
 #start application in namespace
-ip netns exec $NS_NAME su "$USER" -c "$APP"
-
+ip netns exec $NS_NAME sudo -u "$USER" -H -g $USER /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$(id -u benibr)/bus'; $APP"
 #cleanup
 ip netns delete $NS_NAME
 kill $(cat /tmp/torrent-vpn.pid)
