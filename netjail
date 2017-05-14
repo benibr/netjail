@@ -17,7 +17,7 @@ function show_usage {
 	echo -e "\t\tCONFIG\tpath to openvpn config"
 }
 
-#
+#these parameters are used when the script is called by openvpn
 case "$script_type" in
 "up")
 	ip netns add $NS_NAME
