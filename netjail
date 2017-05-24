@@ -2,19 +2,19 @@
 
 ## functions
 function show_usage {
-	echo -e "Usage: netjail -a <application> -c <openvpn.conf> [-u <user>] [-n namespace]"
-	exit
+  echo -e "Usage: netjail -a <application> -c <openvpn.conf> [-u <user>] [-n namespace]"
+  exit
 }
 
 #check priv/args
 if [ "$(id -u)" != "0" ]; then
-	echo "You need to be root!"
-	exit
+  echo "You need to be root!"
+  exit
 fi
 
 if [ $# -lt 2 ]; then
-	show_usage
-	exit
+  show_usage
+  exit
 fi
 
 
@@ -55,22 +55,22 @@ SELF=$(pwd)/$0
 case "$script_type" in
 "up")
   ip netns add $NS_NAME
-	ip netns exec $NS_NAME ip link set dev lo up
-	ip link set dev "$1" up netns $NS_NAME mtu "$2"
-	test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
-	ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
+  ip netns exec $NS_NAME ip link set dev lo up
+  ip link set dev "$1" up netns $NS_NAME mtu "$2"
+  test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
+  ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
   exit 0
 ;;
 
 "route-up")
-	ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
-	test -n "$ifconfig_ipv6_remote" && ip netns exec vpn ip route add default via "$ifconfig_ipv6_remote"
-	exit 0
+  ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
+  test -n "$ifconfig_ipv6_remote" && ip netns exec vpn ip route add default via "$ifconfig_ipv6_remote"
+  exit 0
 ;;
 "down")
-	ip netns delete $NS_NAME
-	exit
-	;;
+  ip netns delete $NS_NAME
+  exit
+  ;;
 esac
 
 #start VPN
