@@ -2,9 +2,7 @@
 
 ## functions
 function show_usage {
-	echo -e "Usage: app_ns.sh APP CONFIG"
-	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
-	echo -e "\t\tCONFIG\tpath to openvpn config"
+	echo -e "Usage: netjail -a <application> -c <openvpn.conf> [-u <user>] [-n namespace]"
 }
 
 #check priv/args
