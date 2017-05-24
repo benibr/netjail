@@ -3,6 +3,7 @@
 ## functions
 function show_usage {
 	echo -e "Usage: netjail -a <application> -c <openvpn.conf> [-u <user>] [-n namespace]"
+	exit
 }
 
 #check priv/args
@@ -26,14 +27,14 @@ while getopts "a:c:u:n:" OPT; do
       OVPN_CONFIG="$OPTARG"
       ;;
     u)
-      [ $OPTARG ] && USER="$OPTARG"
+      [ $OPTARG ] && USER="$(id -u $OPTARG)"
       ;;
     n)
       [ $OPTARG ] && NS_NAME="$OPTARG"
       echo $NS_NAME
       ;;
-    :)
-      show_help
+    *)
+      show_usage
       ;;
   esac
 done
@@ -51,12 +52,12 @@ SELF=$(pwd)/$0
 #these parameters are used when the script is called by openvpn
 case "$script_type" in
 "up")
-	ip netns add $NS_NAME
+  ip netns add $NS_NAME
 	ip netns exec $NS_NAME ip link set dev lo up
 	ip link set dev "$1" up netns $NS_NAME mtu "$2"
 	test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
 	ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
-	exit 0
+  exit 0
 ;;
 
 "route-up")
@@ -87,4 +88,4 @@ done
 ip netns exec $NS_NAME sudo -u "#$USER" -H -g "#$USER" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USER/bus'; $APP"
 #cleanup
 ip netns delete $NS_NAME
-kill $(cat /tmp/torrent-vpn.pid)
+kill $(cat /tmp/$NS_NAME-vpn.pid)
