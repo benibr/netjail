@@ -26,17 +26,23 @@ while getopts "a:c:u:n:" OPT; do
       OVPN_CONFIG="$OPTARG"
       ;;
     u)
-      [ $OPTARG ] &&  USER="$OPTARG" || USER="$(id -u benibr)"
-      echo $USER
+      [ $OPTARG ] && USER="$OPTARG"
       ;;
     n)
-      NS_NAME="trnt"
+      [ $OPTARG ] && NS_NAME="$OPTARG"
+      echo $NS_NAME
       ;;
     :)
       show_help
       ;;
   esac
 done
+
+#defaults
+[ $USER ] || USER="$(id -u)"
+[ $NS_NAME ] || NS_NAME="netjail"
+
+echo $USER $NS_NAME 
 
 #implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
