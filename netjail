@@ -1,21 +1,49 @@
 #!/bin/bash
 
-USER="$(id -u benibr)"
-CONFIG="$2"
-APP="$(which $1)"
-NS_NAME="trnt"
-
-CONFIGDIR=$(dirname $CONFIG )
-VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
-VPN_PID="/tmp/torrent-vpn.pid"
-SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
-
 ## functions
 function show_usage {
 	echo -e "Usage: app_ns.sh APP CONFIG"
 	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
 	echo -e "\t\tCONFIG\tpath to openvpn config"
 }
+
+#check priv/args
+if [ "$(id -u)" != "0" ]; then
+	echo "You need to be root!"
+	exit
+fi
+
+if [ $# -lt 2 ]; then
+	show_usage
+	exit
+fi
+
+
+while getopts "a:c:u:n:" OPT; do
+  case $OPT in
+    a)
+      APP="$(which $OPTARG)"
+      ;;
+    c)
+      CONFIG="$OPTARG"
+      ;;
+    u)
+      USER="$(id -u benibr)"
+      ;;
+    n)
+      NS_NAME="trnt"
+      ;;
+    :)
+      show_help
+      ;;
+  esac
+done
+
+#implicit parameters
+CONFIGDIR=$(dirname $CONFIG )
+VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
+VPN_PID="/tmp/$NS_NAME-vpn.pid"
+SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
 
 #these parameters are used when the script is called by openvpn
 case "$script_type" in
@@ -41,17 +69,6 @@ case "$script_type" in
 	#nop
 ;;
 esac
-
-#check priv/args
-if [ "$(id -u)" != "0" ]; then
-	echo "You need to be root!"
-	exit
-fi
-
-if [ $# -eq 0 ]; then
-	show_usage
-	exit
-fi
 
 #start VPN
 openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
