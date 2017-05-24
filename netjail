@@ -39,15 +39,17 @@ while getopts "a:c:u:n:" OPT; do
   esac
 done
 
-#defaults
+## defaults
 [ $USER ] || USER="$(id -u)"
 [ $NS_NAME ] || NS_NAME="netjail"
 
-#implicit parameters
+## implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
 VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
 VPN_PID="/tmp/$NS_NAME-vpn.pid"
 SELF=$(pwd)/$0
+
+##constants
 
 #these parameters are used when the script is called by openvpn
 case "$script_type" in
@@ -69,9 +71,6 @@ case "$script_type" in
 	ip netns delete $NS_NAME
 	exit
 	;;
-"*")
-	#nop
-;;
 esac
 
 #start VPN
@@ -87,5 +86,4 @@ done
 #start application in namespace
 ip netns exec $NS_NAME sudo -u "#$USER" -H -g "#$USER" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USER/bus'; $APP"
 #cleanup
-ip netns delete $NS_NAME
 kill $(cat /tmp/$NS_NAME-vpn.pid)
