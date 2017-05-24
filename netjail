@@ -23,10 +23,11 @@ while getopts "a:c:u:n:" OPT; do
       APP="$(which $OPTARG)"
       ;;
     c)
-      CONFIG="$OPTARG"
+      OVPN_CONFIG="$OPTARG"
       ;;
     u)
-      USER="$(id -u benibr)"
+      [ $OPTARG ] &&  USER="$OPTARG" || USER="$(id -u benibr)"
+      echo $USER
       ;;
     n)
       NS_NAME="trnt"
@@ -38,7 +39,7 @@ while getopts "a:c:u:n:" OPT; do
 done
 
 #implicit parameters
-CONFIGDIR=$(dirname $CONFIG )
+OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
 VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
 VPN_PID="/tmp/$NS_NAME-vpn.pid"
 SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
@@ -69,7 +70,7 @@ case "$script_type" in
 esac
 
 #start VPN
-openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
+openvpn --config $OVPN_CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$OVPN_CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
 
 #wait for VPN_IP
 while [ -z "$VPN_IP" ]; do
