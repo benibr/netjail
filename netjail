@@ -42,13 +42,11 @@ done
 [ $USER ] || USER="$(id -u)"
 [ $NS_NAME ] || NS_NAME="netjail"
 
-echo $USER $NS_NAME 
-
 #implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
 VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
 VPN_PID="/tmp/$NS_NAME-vpn.pid"
-SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
+SELF=$(pwd)/$0
 
 #these parameters are used when the script is called by openvpn
 case "$script_type" in
