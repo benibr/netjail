@@ -12,7 +12,7 @@ SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
 
 ## functions
 function show_usage {
-	echo -e "Usage: app_ns.sh APP CONFIG"
+	echo -e "Usage: netjail APP CONFIG"
 	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
 	echo -e "\t\tCONFIG\tpath to openvpn config"
 }
