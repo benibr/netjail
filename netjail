@@ -17,6 +17,16 @@ function show_usage {
 	echo -e "\t\tCONFIG\tpath to openvpn config"
 }
 
+function cleanup {
+  ip netns delete $NS_NAME
+  kill $(cat /tmp/torrent-vpn.pid)
+  exit 0
+}
+
+#avoid a running openvpn after script is cancled
+trap cleanup SIGKILL
+trap cleanup SIGINT
+
 #these parameters are used when the script is called by openvpn
 case "$script_type" in
 "up")
@@ -65,6 +75,4 @@ done
 
 #start application in namespace
 ip netns exec $NS_NAME sudo -u "#$USER" -H -g "#$USER" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USER/bus'; $APP"
-#cleanup
-ip netns delete $NS_NAME
-kill $(cat /tmp/torrent-vpn.pid)
+cleanup
