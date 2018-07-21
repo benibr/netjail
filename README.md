@@ -1,12 +1,12 @@
 # netjail
 
-Starts an application in an new network namespace and route all its traffic through a specific OpenVPN.
+Starts an application in a new network namespace and route all its traffic through a specific OpenVPN.
 
 ## Features:
 *  force every kind of application into a specific connection
-*  keep your network configuration as it is
+*  keep your host network configuration as it is
 *  prevent the application from connecting somewhere else
-*  works without virtualization environments or chroot
+*  works without virtualization environments or containers
 
 ## "Features":
 *  only works with openvpn ptp connections
@@ -14,7 +14,7 @@ Starts an application in an new network namespace and route all its traffic thro
 
 ## Requirements:
 *  Bash
-*  kernel compiled with "advanced router" and "policy routing" features
+*  linux kernel compiled with "advanced router" and "policy routing" features
 *  iproute2 (http://lartc.org/howto/lartc.iproute2.html)
 
 ## Usecase
@@ -22,7 +22,7 @@ The main reason which lead to the development of this script was to keep its aut
 However, one resulting usecase is to jail a torrent application into a openvpn connection to provide anonymity.
 
 ## Usage:
-> netjail APP CONFIG
-> > APP    an application which should be routed only via openvpn
-> > CONFIG path to openvpn config"
-
+```
+netjail APP CONFIG
+  APP    an application which should be routed only via openvpn
+  CONFIG path to openvpn config"
