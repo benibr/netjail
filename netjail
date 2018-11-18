@@ -12,15 +12,20 @@ SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
 
 ## functions
 function show_usage {
-	echo -e "Usage: netjail APP CONFIG"
-	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
-	echo -e "\t\tCONFIG\tpath to openvpn config"
+  echo -e "Usage: netjail -c <openvpn.conf> [-a <application> -u <user>] [-n namespace]"
+  exit
 }
 
 function cleanup {
   ip netns delete $NS_NAME
   kill $(cat /tmp/torrent-vpn.pid)
   exit 0
+}
+
+function show_usage {
+	echo -e "Usage: netjail APP CONFIG"
+	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
+	echo -e "\t\tCONFIG\tpath to openvpn config"
 }
 
 #avoid a running openvpn after script is cancled
@@ -30,49 +35,75 @@ trap cleanup SIGINT
 #these parameters are used when the script is called by openvpn
 case "$script_type" in
 "up")
-	ip netns add $NS_NAME
-	ip netns exec $NS_NAME ip link set dev lo up
-	ip link set dev "$1" up netns $NS_NAME mtu "$2"
-	test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
-	ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
-	exit 0
+  ip netns add $NS_NAME
+  ip netns exec $NS_NAME ip link set dev lo up
+  ip link set dev "$1" up netns $NS_NAME mtu "$2"
+  test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
+  ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
+  exit 0
 ;;
-
 "route-up")
-	ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
-	test -n "$ifconfig_ipv6_remote" && ip netns exec vpn ip route add default via "$ifconfig_ipv6_remote"
-	exit 0
+  ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
+  test -n "$ifconfig_ipv6_remote" && ip netns exec vpn ip route add default via "$ifconfig_ipv6_remote"
+  exit 0
 ;;
 "down")
-	ip netns delete $NS_NAME
-	exit
-	;;
-"*")
-	#nop
-;;
+  ip netns delete $NS_NAME
+  exit
+  ;;
 esac
 
 #check priv/args
 if [ "$(id -u)" != "0" ]; then
-	echo "You need to be root!"
-	exit
+  echo "You need to be root to work with network namespaces!"
+  exit
 fi
 
-if [ $# -eq 0 ]; then
-	show_usage
-	exit
-fi
+# cmd arguments parsing
+while getopts "a:c:u:n:" OPT; do
+  case $OPT in
+    a)
+      APP="$(which $OPTARG)"
+      ;;
+    c)
+      OVPN_CONFIG="$OPTARG" 
+      ;;
+    u)
+      USERID="$(id -u $OPTARG)"
+      ;;
+    n)
+      NS_NAME="$OPTARG"
+      ;;
+    *)
+      show_usage
+      ;;
+  esac
+done
+
+[ -f $OVPN_CONFIG ] || ( echo "Please give a OpenVPN Config file with -c" && exit 1 )
+[ -n $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && exit 1
+
+## defaults
+[ $NS_NAME ] || NS_NAME="netjail"
+
+## implicit parameters
+OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
+VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
+VPN_PID="/tmp/$NS_NAME-vpn.pid"
+SELF=$(pwd)/$0
 
 #start VPN
-openvpn --config $CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
+openvpn --config $OVPN_CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$OVPN_CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
 
 #wait for VPN_IP
 while [ -z "$VPN_IP" ]; do
-  VPN_IP=$(ip netns exec $NS_NAME ip addr show dev $VPN_DEV | grep inet | awk '{print $2}' | cut -f 1 -d / &2>/dev/null)
-  echo $VPN_IP
+  VPN_IP=$(ip netns exec $NS_NAME ip addr show dev $VPN_DEV 2>&1 | grep inet | awk '{print $2}' | cut -f 1 -d / &2>/dev/null)
   sleep 1
 done
 
-#start application in namespace
-ip netns exec $NS_NAME sudo -u "#$USER" -H -g "#$USER" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USER/bus'; $APP"
+if [ -n $APP ]; then
+  #start application in namespace
+  ip netns exec $NS_NAME sudo -u "#$USERID" -H -g "#$USERID" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USERID/bus'; $APP"
+fi
 cleanup
+
