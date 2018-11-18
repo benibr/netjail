@@ -1,14 +1,24 @@
 #!/bin/bash
 
-USER="$(id -u benibr)"
-CONFIG="$2"
-APP="$(which $1)"
-NS_NAME="trnt"
-
-CONFIGDIR=$(dirname $CONFIG )
-VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
-VPN_PID="/tmp/torrent-vpn.pid"
-SELF="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/netjail"
+#these parameters are used when the script is called by openvpn
+[ -n $dev ] && NS_NAME="${dev%-vpn}"
+case "$script_type" in
+"up")
+  ip netns add $NS_NAME
+  ip netns exec $NS_NAME ip link set dev lo up
+  ip link set dev "$1" up netns $NS_NAME mtu "$2"
+  ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
+  exit 0
+;;
+"route-up")
+  ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
+  exit 0
+;;
+"down")
+  ip netns delete $NS_NAME
+  exit
+  ;;
+esac
 
 ## functions
 function show_usage {
@@ -18,7 +28,7 @@ function show_usage {
 
 function cleanup {
   ip netns delete $NS_NAME
-  kill $(cat /tmp/torrent-vpn.pid)
+  kill $(cat $VPN_PID)
   exit 0
 }
 
@@ -31,27 +41,6 @@ function show_usage {
 #avoid a running openvpn after script is cancled
 trap cleanup SIGKILL
 trap cleanup SIGINT
-
-#these parameters are used when the script is called by openvpn
-case "$script_type" in
-"up")
-  ip netns add $NS_NAME
-  ip netns exec $NS_NAME ip link set dev lo up
-  ip link set dev "$1" up netns $NS_NAME mtu "$2"
-  test -n "$ifconfig_ipv6_local" && ip netns exec $NS_NAME ip addr add dev "$1" "$ifconfig_ipv6_local"/112
-  ip netns exec $NS_NAME ip addr add dev "$1" "$4/${ifconfig_netmask:-30}" ${ifconfig_broadcast:+broadcast "$ifconfig_broadcast"}
-  exit 0
-;;
-"route-up")
-  ip netns exec $NS_NAME ip route add default via "$route_vpn_gateway"
-  test -n "$ifconfig_ipv6_remote" && ip netns exec vpn ip route add default via "$ifconfig_ipv6_remote"
-  exit 0
-;;
-"down")
-  ip netns delete $NS_NAME
-  exit
-  ;;
-esac
 
 #check priv/args
 if [ "$(id -u)" != "0" ]; then
@@ -84,7 +73,7 @@ done
 [ -n $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && exit 1
 
 ## defaults
-[ $NS_NAME ] || NS_NAME="netjail"
+[ -n $NS_NAME ] && NS_NAME="netjail"
 
 ## implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
@@ -93,7 +82,7 @@ VPN_PID="/tmp/$NS_NAME-vpn.pid"
 SELF=$(pwd)/$0
 
 #start VPN
-openvpn --config $OVPN_CONFIG --writepid $VPN_PID  --dev $VPN_DEV --dev-type tun --daemon --cd "$OVPN_CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
+openvpn --config $OVPN_CONFIG --writepid $VPN_PID --dev $VPN_DEV --dev-type tun --daemon --cd "$OVPN_CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
 
 #wait for VPN_IP
 while [ -z "$VPN_IP" ]; do
