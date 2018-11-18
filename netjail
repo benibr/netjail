@@ -21,11 +21,6 @@ case "$script_type" in
 esac
 
 ## functions
-function show_usage {
-  echo -e "Usage: netjail -c <openvpn.conf> [-a <application> -u <user>] [-n namespace]"
-  exit
-}
-
 function cleanup {
   ip netns delete $NS_NAME
   kill $(cat $VPN_PID)
@@ -51,11 +46,11 @@ fi
 # cmd arguments parsing
 while getopts "a:c:u:n:" OPT; do
   case $OPT in
-    a)
-      APP="$(which $OPTARG)"
-      ;;
     c)
       OVPN_CONFIG="$OPTARG" 
+      ;;
+    a)
+      APP="$(which $OPTARG)" || exit 1
       ;;
     u)
       USERID="$(id -u $OPTARG)"
@@ -69,8 +64,8 @@ while getopts "a:c:u:n:" OPT; do
   esac
 done
 
-[ -f $OVPN_CONFIG ] || ( echo "Please give a OpenVPN Config file with -c" && exit 1 )
-[ -n $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && exit 1
+[ -a $OVPN_CONFIG ] || ( echo "Please give a OpenVPN Config file with -c"; exit 1 )
+[ $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && exit 1
 
 ## defaults
 [ -n $NS_NAME ] && NS_NAME="netjail"
@@ -90,9 +85,8 @@ while [ -z "$VPN_IP" ]; do
   sleep 1
 done
 
-if [ -n $APP ]; then
+if [ $APP ]; then
   #start application in namespace
   ip netns exec $NS_NAME sudo -u "#$USERID" -H -g "#$USERID" /bin/bash -c "export DBUS_SESSION_BUS_ADDRESS='unix:path=/run/user/$USERID/bus'; $APP"
+  cleanup
 fi
-cleanup
-
