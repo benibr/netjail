@@ -28,9 +28,12 @@ function cleanup {
 }
 
 function show_usage {
-	echo -e "Usage: netjail APP CONFIG"
-	echo -e "\t\tAPP\tan application which should be routed only via openvpn"
-	echo -e "\t\tCONFIG\tpath to openvpn config"
+	echo -e "Usage: netjail -c <openvpn.conf> [-a <application> [-u <user>]] [-n <netns name>] [-h]"
+	echo -e "\t -c file\tspecify the openvpn config file which should be used"
+	echo -e "\t -a application\toptional: specify a application to run inside the netns"
+	echo -e "\t -u user\toptional: specify a user to run the application inside the netns"
+	echo -e "\t -h\t\tshow this help"
+	exit $1
 }
 
 #avoid a running openvpn after script is cancled
@@ -44,7 +47,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # cmd arguments parsing
-while getopts "a:c:u:n:" OPT; do
+while getopts "a:c:u:n:h" OPT; do
   case $OPT in
     c)
       OVPN_CONFIG="$OPTARG" 
@@ -58,17 +61,22 @@ while getopts "a:c:u:n:" OPT; do
     n)
       NS_NAME="$OPTARG"
       ;;
+    -h)
+      show_usage 0
+      ;;
     *)
-      show_usage
+      show_usage 1
       ;;
   esac
 done
 
-[ -a $OVPN_CONFIG ] || ( echo "Please give a OpenVPN Config file with -c"; exit 1 )
-[ $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && exit 1
+[ -z "$*" ] && show_usage && exit 1
+[ -z $OVPN_CONFIG ] && echo "Please give a OpenVPN Config file" && show_usage 1
+[ -r $OVPN_CONFIG ] || { echo "Cannot reading OpenVPN config file" && show_usage 1; }
+[ $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && show_usage 1
 
 ## defaults
-[ -n $NS_NAME ] && NS_NAME="netjail"
+[ -z $NS_NAME ] && NS_NAME="netjail"
 
 ## implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )

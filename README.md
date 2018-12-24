@@ -1,9 +1,9 @@
 # netjail
 
-Starts an application in a new network namespace and route all its traffic through a specific OpenVPN.
+Starts OpenVPN and moves the OVPN network interface into its own network namespace
 
 ## Features:
-*  force every kind of application into a specific connection
+*  can force every kind of application into a specific connection
 *  keep your host network configuration as it is
 *  prevent the application from connecting somewhere else
 *  works without virtualization environments or containers
@@ -23,6 +23,9 @@ However, one resulting usecase is to jail a torrent application into a openvpn c
 
 ## Usage:
 ```
-netjail APP CONFIG
-  APP    an application which should be routed only via openvpn
-  CONFIG path to openvpn config"
+Usage: netjail -c <openvpn.conf> [-a <application> [-u <user>]] [-n <netns name>] [-h]
+	 -c file	specify the openvpn config file which should be used
+	 -a application	optional: specify a application to run inside the netns
+	 -u user	optional: specify a user to run the application inside the netns
+	 -h		show this help
+
