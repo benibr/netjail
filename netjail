@@ -72,11 +72,11 @@ done
 
 [ -z "$*" ] && show_usage && exit 1
 [ -z $OVPN_CONFIG ] && echo "Please give a OpenVPN Config file" && show_usage 1
-[ -r $OVPN_CONFIG ] || echo "Cannot reading OpenVPN config file" && show_usage 1
+[ -r $OVPN_CONFIG ] || { echo "Cannot reading OpenVPN config file" && show_usage 1; }
 [ $APP ] && [ -z $USERID ] && echo "Please specify a user to run a program" && show_usage 1
 
 ## defaults
-[ -n $NS_NAME ] && NS_NAME="netjail"
+[ -z $NS_NAME ] && NS_NAME="netjail"
 
 ## implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
