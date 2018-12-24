@@ -74,7 +74,7 @@ done
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
 VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
 VPN_PID="/tmp/$NS_NAME-vpn.pid"
-SELF=$(pwd)/$0
+SELF=$(readlink -f $0)
 
 #start VPN
 openvpn --config $OVPN_CONFIG --writepid $VPN_PID --dev $VPN_DEV --dev-type tun --daemon --cd "$OVPN_CONFIGDIR" --route-noexec --ifconfig-noexec --up $SELF --route-up $SELF --script-security 2
