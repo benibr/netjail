@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #these parameters are used when the script is called by openvpn
-[ -n $dev ] && NS_NAME="${dev%-vpn}"
+[ -n $dev ] && NS_NAME="${dev}"
 case "$script_type" in
 "up")
   ip netns add $NS_NAME
@@ -80,7 +80,7 @@ done
 
 ## implicit parameters
 OVPN_CONFIGDIR=$(dirname $OVPN_CONFIG )
-VPN_DEV="$NS_NAME";VPN_DEV+="-vpn"
+VPN_DEV="$NS_NAME"
 VPN_PID="/tmp/$NS_NAME-vpn.pid"
 SELF=$(readlink -f $0)
 
